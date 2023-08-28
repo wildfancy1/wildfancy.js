@@ -1,0 +1,1137 @@
+"ui";
+activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);//设置全屏
+//activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+importClass(android.animation.ObjectAnimator)//音乐
+importClass(android.content.pm.ActivityInfo);//视频
+var isfinish = false;
+var isTimeout;
+
+//tabs 数据
+var tabs_data = {
+    //tabs 背景
+    bg: "#99e2e2e2",
+    selectColor: {
+        //当前页面选中颜色
+        on: "#00ffffff",
+        //当前页面未选中颜色
+        off: "#3d000000"
+    },
+    //图标大小
+    srcSize: 30,
+    //字体大小
+    textSize: 8,
+    //动画缩放比例 未加入动画效果
+    zoom: 1.2,
+    //是否显示指示器小横条
+    tabs_h: true,
+    //tabs 按钮数据
+    data: [
+        ["脚本", "https://hbimg.huabanimg.com/25af2aba2de3b7fa05907f6f042d6ccb9855dc6610ae-yo2vlz_fw658/format/webp"],
+        ["音乐", "https://hbimg.huabanimg.com/c5292fafef63f27248813ec45f2c3827b05c806214f8-dBWGEK_fw658/format/webp"],
+        ["影视", "https://hbimg.huabanimg.com/c2242d0f62f417250873ce5b40860fee8d3697ef1006-RoKlBP_fw658/format/webp"],
+        ["更多", "https://hbimg.huabanimg.com/e633da192dbe6d80c7812b819000fba4747e602213c1-G3EDuj_fw658/format/webp"],
+    ],
+}
+
+//tabs按钮 布局视图信息
+var tabs_view = []
+//tabs按钮 当前选中按钮
+var selectView = 0;
+
+//自定义控件 tabs按钮
+var Tabs_btn_layout = function () {
+    //继承ui.Widget
+    util.extend(Tabs_btn_layout, ui.Widget);
+    function Tabs_btn_layout() {
+        //调用父类构造函数
+        ui.Widget.call(this);
+        //自定义属性data ,定义控件的每个参数 传入值为整数
+        this.defineAttr("data", (view, attr, value, defineSetter) => {
+            //获取当前控件的参数值 tabs_data.data[value] 赋值到arr数组
+            arr = tabs_data.data[value]
+            //设定 _text控件文本
+            view._text.setText(arr[0])
+            //设定 _src控件图片
+            view._src.attr("src", arr[1])
+            //把当前控件信息集合到tabs_view数组里面
+            tabs_view[tabs_view.length] = view
+            //如果当前控件为初始值 则设定控件颜色为选中颜色 selectView==value==0 
+            if (value == selectView) {
+                view._src.attr("tint", tabs_data.selectColor.on)
+                view._text.setTextColor(colors.parseColor("#000000"));
+            }
+        });
+    }
+    Tabs_btn_layout.prototype.render = function () {
+        return (
+            //1.0.0-1 修改 w="*" 参数 屏幕方向发生变化时 宽度自适配
+            <vertical id="_bg" w="*" bg="{{tabs_data.bg}}" padding="0 5" gravity="center" >
+                <img h="82px" w="{{tabs_data.srcSize}}" id="_src" tint="{{tabs_data.selectColor.off}}" />
+                <text h="30px" w="auto" id="_text" textSize="{{tabs_data.textSize}}" textColor="{{tabs_data.selectColor.off}}" />
+            </vertical>
+        )
+    }
+    ui.registerWidget("tabs_btn-layout", Tabs_btn_layout);
+    return Tabs_btn_layout;
+}()
+//自定义控件 
+var Tabs_layout = function () {
+    util.extend(Tabs_layout, ui.Widget);
+    function Tabs_layout() {
+        ui.Widget.call(this);
+        this.defineAttr("data", (view, attr, value, defineSetter) => {
+            //遍历 tabs_data.data数组 
+            for (var i = 0; i < tabs_data.data.length; i++) {
+                time = i
+                //1.0.0-1 增加 layout_weight="1"参数 屏幕方向发生变化时 宽度自适配
+                ui.inflate(<tabs_btn-layout data="{{time}}" layout_weight="1" />, view._tabs, true)
+            }
+            //根据tabs_h值设置 _color颜色
+            tabs_data.tabs_h ? _color = tabs_data.selectColor.on : _color = "#00000000";
+            view.tabs.selectedTabIndicatorColor = colors.parseColor(_color);//设置tabs指示器颜色
+        });
+    }
+    Tabs_layout.prototype.render = function () {
+        return (
+            <card w="*" h="140px" cardElevation="5" foreground="?selectableItemBackground">
+                <horizontal id="_tabs" />
+                <tabs id="tabs"/>
+            </card>
+        )
+    }
+    ui.registerWidget("tabs-layout", Tabs_layout);
+    return Tabs_layout;
+}()
+function Color(color){
+    return android.graphics.Color.parseColor(color);
+}
+function GradientDrawable(orientation,color){
+    var colors=[];
+    color.forEach(color=>colors.push(Color(color)));
+    return new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation[orientation],colors);
+}
+ui.statusBarColor("#ffb79d96");
+ui.layout(
+  <drawer id="drawer" h="*">
+        <frame h="*">
+         <viewpager  w="*" h="*" id="viewpager" layout_alignParentBottom="true" >
+               <frame h="*">
+                 <img h="500px" w="{{device.width}}px" scaleType="fitXY" src="https://hbimg.huabanimg.com/03844d0f23e19a72825e965a9650ffbe4ddb449f1a011-8YojD6_fw658/format/webp"/>
+                 <vertical h="*">
+                  <toolbar id="toolbar" title="" paddingTop="50px" h="500px" />
+                  <ScrollView id="yemian1" marginBottom="0px">
+                  <vertical src="https://hbimg.huabanimg.com/03844d0f23e19a72825e965a9650ffbe4ddb449f1a011-8YojD6_fw658/format/webp" h="*">
+                     <horizontal w="*">
+                      <card id="carda" h="100" w="100" cardCornerRadius="10dp" cardElevation="3dp" margin="20 0 10 20" layout_weight="1" foreground="?selectableItemBackground">
+                       <img id="card1" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp" />
+                        <vertical>
+                         <horizontal>
+                          <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                          <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                          <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                         </horizontal>
+                         <horizontal>
+                          <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                          <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                          <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+     
+                       <card id="cardb" h="100" w="100" cardCornerRadius="10dp" cardElevation="2dp" margin="10 0 20 20" layout_weight="1">
+                        <img id="card2" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp"/>
+                         <vertical>
+                          <horizontal>
+                           <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >刷</text>
+                           <text textSize="20sp" textStyle="italic"margin="2 10 0 0">课/任务</text>
+                           <img h="40" w="40" src="https://hbimg.huabanimg.com/85df0101960e7d95735f5fbeaccd2a36b9d724131254-sCTIy5_fw658/format/webp" margin="10 10 0 0"/>
+                          </horizontal>
+                          <horizontal>
+                           <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">钉</text>
+                           <text textSize="15sp" margin="2 6 0 10">钉(DingTalk)</text>
+                           <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+                      </horizontal>
+                      
+                    <horizontal w="*">
+                      <card h="100" w="100" cardCornerRadius="10dp" cardElevation="3dp" margin="20 0 10 20" layout_weight="1" foreground="?selectableItemBackground">
+                       <img id="card3" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp" />
+                        <vertical>
+                         <horizontal>
+                          <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                          <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                          <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                         </horizontal>
+                         <horizontal>
+                          <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                          <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                          <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+     
+                       <card h="100" w="100" cardCornerRadius="10dp" cardElevation="2dp" margin="10 0 20 20" layout_weight="1">
+                        <img id="card4" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp"/>
+                         <vertical>
+                          <horizontal>
+                           <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                           <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                           <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                          </horizontal>
+                          <horizontal>
+                           <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                           <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                           <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+                      </horizontal>
+
+                    <horizontal w="*">
+                      <card h="100" w="100" cardCornerRadius="10dp" cardElevation="3dp" margin="20 0 10 20" layout_weight="1" foreground="?selectableItemBackground">
+                       <img id="card5" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp" />
+                        <vertical>
+                         <horizontal>
+                          <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                          <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                          <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                         </horizontal>
+                         <horizontal>
+                          <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                          <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                          <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+     
+                       <card h="100" w="100" cardCornerRadius="10dp" cardElevation="2dp" margin="10 0 20 20" layout_weight="1">
+                        <img id="card6" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp"/>
+                         <vertical>
+                          <horizontal>
+                           <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                           <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                           <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                          </horizontal>
+                          <horizontal>
+                           <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                           <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                           <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+                      </horizontal>
+
+                    <horizontal w="*">
+                      <card h="100" w="100" cardCornerRadius="10dp" cardElevation="3dp" margin="20 0 10 20" layout_weight="1" foreground="?selectableItemBackground">
+                       <img id="card7" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp" />
+                        <vertical>
+                         <horizontal>
+                          <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                          <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                          <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                         </horizontal>
+                         <horizontal>
+                          <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                          <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                          <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+     
+                       <card h="100" w="100" cardCornerRadius="10dp" cardElevation="2dp" margin="10 0 20 20" layout_weight="1">
+                        <img id="card8" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp"/>
+                         <vertical>
+                          <horizontal>
+                           <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                           <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                           <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                          </horizontal>
+                          <horizontal>
+                           <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                           <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                           <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+                      </horizontal>
+
+                    <horizontal w="*">
+                      <card h="100" w="100" cardCornerRadius="10dp" cardElevation="3dp" margin="20 0 10 20" layout_weight="1" foreground="?selectableItemBackground">
+                       <img id="card9" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp" />
+                        <vertical>
+                         <horizontal>
+                          <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                          <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                          <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                         </horizontal>
+                         <horizontal>
+                          <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                          <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                          <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+     
+                       <card h="100" w="100" cardCornerRadius="10dp" cardElevation="2dp" margin="10 0 20 20" layout_weight="1">
+                        <img id="card10" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp"/>
+                         <vertical>
+                          <horizontal>
+                           <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                           <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                           <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                          </horizontal>
+                          <horizontal>
+                           <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                           <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                           <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+                      </horizontal>
+
+                    <horizontal w="*">
+                      <card h="100" w="100" cardCornerRadius="10dp" cardElevation="3dp" margin="20 0 10 20" layout_weight="1" foreground="?selectableItemBackground">
+                       <img id="card11" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp" />
+                        <vertical>
+                         <horizontal>
+                          <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                          <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                          <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                         </horizontal>
+                         <horizontal>
+                          <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                          <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                          <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+     
+                       <card h="100" w="100" cardCornerRadius="10dp" cardElevation="2dp" margin="10 0 20 20" layout_weight="1">
+                        <img id="card12" src="https://hbimg.huabanimg.com/3e2c0d03eaf08b1d9ce0b06322ad3c9d8eef93d31f46-XzJb59_fw658/format/webp"/>
+                         <vertical>
+                          <horizontal>
+                           <text textSize="30sp" textStyle="italic" margin="8 10 0 0" >点</text>
+                           <text textSize="20sp" textStyle="italic"margin="2 10 0 0">赞/任务</text>
+                           <img h="40" w="40" src="https://hbimg.huabanimg.com/f055ee14b5202061b641ad52b1a24aa374d00d151a55-ajQMNo_/fw/480/format/webp" margin="10 10 0 0"/>
+                          </horizontal>
+                          <horizontal>
+                           <text textStyle="bold" textSize="20sp" margin="8 6 0 10" textColor="#000000">腾</text>
+                           <text textSize="15sp" margin="2 6 0 10">讯QQ</text>
+                           <img h="5" w="80" alpha="0.5" src="https://hbimg.huabanimg.com/812ecdd13b86a2a48cfd91e89edf4fd1e67edf3e1c4-gfcbr1_fw658/format/webp" margin="15 25 0 0" tint="#ffffff"/>
+                          </horizontal>
+                         </vertical>
+                       </card> 
+                      </horizontal>
+
+                  </vertical>
+                  </ScrollView>
+                  </vertical>
+                </frame>
+                <frame id="music" h="*">
+                </frame>
+                <frame id="vidao" h="*">
+                </frame>
+                <frame>
+                </frame>
+            </viewpager>
+       <frame id="tab">
+        <tabs-layout data="" layout_gravity="bottom" />
+       </frame>
+     </frame>
+    <vertical layout_gravity="left" bg="file://./4.png" w="280">
+            <vertical h="170"bg="file://./2.png">
+             <img id="imgs" src="https://img.mp.itc.cn/upload/20170506/09e15825418046bbbc24b80ebd9d4a48_th.jpeg" w="80" h="80" circle="true" marginLeft="100" marginTop="20"/>
+             <text textColor="#ffffff" textSize="20sp" text="制作者：妄念" gravity="center" marginTop="10"/>
+            </vertical>
+            <horizontal bg="?selectableItemBackground" w="*">
+             <img w="50" h="50" padding="15" src="@drawable/ic_touch_app_black_48dp" tint="#ffffff"/>
+             <Switch id="autoService" w="220" h="50" text="无障碍服务" checked="{{auto.service != null}}" padding="7 7 7 7" textSize="15sp" textColor="#ffffff"/>
+            </horizontal>
+            <list id="menu">
+             <horizontal bg="?selectableItemBackground" w="*">
+              <img w="50" h="50" padding="15" src="{{this.icon}}" tint="#ffffff" />
+              <text textColor="#ffffff" textSize="15sp" text="{{this.title}}" layout_gravity="center"/> 
+             </horizontal>
+            </list>
+       </vertical>
+    </drawer>
+);
+
+ui.yemian1.overScrollMode=android.view.View.OVER_SCROLL_NEVER;//删除滑动到底时的边缘阴影
+ui.card1.backgroundDrawable=GradientDrawable("TL_BR",["#fad0c4","#00d1ff"]);
+ui.card2.backgroundDrawable=GradientDrawable("TL_BR",["#ffecd2","#fcb69f"]);
+ui.card3.backgroundDrawable=GradientDrawable("TL_BR",["#fad0c4","#ffd1ff"]);
+ui.card4.backgroundDrawable=GradientDrawable("TL_BR",["#ff9a9e","#fecfef"]);
+ui.card5.backgroundDrawable=GradientDrawable("TL_BR",["#fdcbf1","#e6dee9"]);
+ui.card6.backgroundDrawable=GradientDrawable("TL_BR",["#a1c4fd","#c2e9fb"]);
+ui.card7.backgroundDrawable=GradientDrawable("TL_BR",["#d4fc79","#96e6a1"]);
+ui.card8.backgroundDrawable=GradientDrawable("TL_BR",["#cfd9df","#e2ebf0"]);
+ui.card9.backgroundDrawable=GradientDrawable("TL_BR",["#ffffff","#000000"]);
+ui.card10.backgroundDrawable=GradientDrawable("TL_BR",["#4facfe","#00f2fe"]);
+ui.card11.backgroundDrawable=GradientDrawable("TL_BR",["#fa709a","#fee140"]);
+ui.card12.backgroundDrawable=GradientDrawable("TL_BR",["#9795f0","#fbc8d4"]);
+var ii=1;
+var isCanFinish = false;
+var isCanFinishTimeout;
+ui.emitter.on("back_pressed", e => {
+    if (!isCanFinish) {
+        isCanFinish = true;
+        if(ii%2==0){
+            intervalId2=setInterval(fn2, 0)
+            }else{
+            intervalId=setInterval(fn, 0)
+            }
+            ii++;
+        isCanFinishTimeout=setTimeout(() => {
+            //toastLog("再按一次退出程序");
+            isCanFinish = false;
+        }, 500);
+        e.consumed = true;
+    } else {
+        clearTimeout(isCanFinishTimeout);
+        e.consumed = false;
+    };
+});
+
+var num8 = function () {
+  var count1 = 0
+  return function () {
+   if(count1>141){count1=0}
+    return count1++;
+  }
+}()
+var intervalId;
+var fn = () => {
+  var n=num8()
+  ui.tab.scrollTo(0, -n)
+  if(n>140){
+    clearInterval(intervalId)
+  }
+}
+var intervalId2;
+var num9 = function () {
+  var count2 = 140
+  return function () {
+    if(count2<-1){count2=140}
+    return count2--;
+  }
+}()
+var fn2 = () => {
+  var n=num9()
+  ui.tab.scrollTo(0, -n)
+  if(n<0){
+    clearInterval(intervalId2)
+  }
+}
+//setTimeout(() => {intervalId=setInterval(fn, 1)},3000)
+//ui.jianbian.loadUrl("file:///storage/emulated/0/Android/data/com.android.browser/pages/Fresh%20Background%20Gradients%20%7C%20WebGradients.com%20%F0%9F%92%8E/index.mht");
+activity.setSupportActionBar(ui.toolbar);
+ui.tabs.setupWithViewPager(ui.viewpager);//绑定ViewPager到指示器
+ui.toolbar.setupWithDrawer(ui.drawer);
+//页面更改侦听器
+ui.viewpager.setOnPageChangeListener({
+    //已选定页面发生改变时触发
+    onPageSelected: function (index) {
+        
+        log("上次选中" + tabs_view[index]._text.text())
+        //设置selectView上次页面 图案和字体颜色为未选中颜色 tabs_data.selectColor.off
+        tabs_view[selectView]._src.attr("tint", tabs_data.selectColor.off)
+        tabs_view[selectView]._text.setTextColor(colors.parseColor(tabs_data.selectColor.off))
+        //设置当前页面 图案和字体颜色为选中颜色 tabs_data.selectColor.on
+        tabs_view[index]._src.attr("tint", tabs_data.selectColor.on)
+        tabs_view[index]._text.setTextColor(colors.parseColor("#000000"))
+        //更改标题 title 内容
+        //ui.toolbar.setTitle(tabs_view[index]._text.text())
+        //更改通知栏颜色
+        var status;
+        if(tabs_view[index]._text.text()=="脚本"||tabs_view[index]._text.text()=="小程序"){
+            status="#ffb79d96"
+            }else{
+                status="#00ffffff"
+                }
+        ui.statusBarColor(status);
+        //设置当前页面为 index
+        selectView = index
+    }
+})
+
+ui.menu.setDataSource([
+  {      title: "控制台",
+      icon: "@drawable/ic_airplay_black_48dp"
+  },
+  {
+      title: "主题",
+      icon: "@drawable/ic_format_paint_black_48dp"
+  },
+    {
+      title: "退出",
+      icon: "@drawable/ic_exit_to_app_black_48dp"
+  }
+]);      
+
+//监听无障碍点击
+ui.autoService.on("check", function(checked) {
+// 用户勾选无障碍服务的选项时，跳转到页面让用户去开启
+if(checked && auto.service == null) {
+app.startActivity({
+action: "android.settings.ACCESSIBILITY_SETTINGS"
+});
+log("打开无障碍")
+}
+if(!checked && auto.service != null){
+auto.service.disableSelf();
+log("关闭无障碍")
+}
+});
+
+//监听无障碍点击
+ui.autoService.on("check", function(checked) {
+// 用户勾选无障碍服务的选项时，跳转到页面让用户去开启
+if(checked && auto.service == null) {
+app.startActivity({
+action: "android.settings.ACCESSIBILITY_SETTINGS"
+});
+log("打开无障碍")
+}
+if(!checked && auto.service != null){
+auto.service.disableSelf();
+log("关闭无障碍")
+}
+});
+// 当用户回到本界面时，resume事件会被触发
+ui.emitter.on("resume", function() {
+// 此时根据无障碍服务的开启情况，同步开关的状态
+ui.autoService.checked = auto.service != null;
+});
+
+//创建选项菜单(右上角)
+ui.emitter.on("create_options_menu", menu=>{
+    menu.add("问题反馈");
+	menu.add("使用说明");
+	menu.add("关于");
+});
+//监听选项菜单点击
+ui.emitter.on("options_item_selected", (e, item)=>{
+    switch(item.getTitle()){
+        case"关于":
+            alert("关于","本软件是基于auto.js开发的应用\n版本号 ：v1.0.0\n制作者 ：妄念\n邮   箱  : 3237837637@qq.com\n\n本软件的相关制作纯属个人爱好，不用于任何商业用途仅供学习，如有侵权请及时联系作者处理!");
+        break;
+        case "使用说明":
+            engines.execScript("使用说明", "\"ui\";shiyongshuoming();" + shiyongshuoming.toString());
+        break;
+		case"问题反馈":
+		engines.execScript("问题反馈", "\"ui\";wentifankui();" + wentifankui.toString());
+		break;
+    }
+    e.consumed = true;
+});
+// 当用户回到本界面时，resume事件会被触发
+ui.emitter.on("resume", function() {
+// 此时根据无障碍服务的开启情况，同步开关的状态
+ui.autoService.checked = auto.service != null;
+});
+
+ui.carda.click(()=>{
+    toast("card1")
+    });
+ui.cardb.click(()=>{
+    engines.execScript("","DingTalk();" + DingTalk.toString());
+    });
+//setTimeout(() => {intervalId=setInterval(fn, 1)},3000)
+
+function tab(){
+       if (!isfinish) {
+        isfinish = true;
+        isTimeout=setTimeout(() => {
+           // toastLog("双击退出");
+            intervalId2=setInterval(fn2, 0)
+            setTimeout(() => {intervalId=setInterval(fn, 1)},3000)
+            isfinish = false;
+        }, 1000);
+    } else {
+        //toast("hh")
+        clearTimeout(isTimeout);
+        isfinish = false;
+    };
+    }
+
+//音乐
+function setContainermusic(v) {
+    ui.music.removeAllViews();
+    ui.music.addView(v, new android.widget.FrameLayout.LayoutParams(-1, -1));
+}
+
+var 音乐 = {
+    ui: ui.inflate(
+  <vertical>
+   <frame w="*" h="*" >
+    <vertical>
+     <frame h="300px" w="*" bg="#ffffff">
+    <img src="https://hbimg.huabanimg.com/4e79c4156f9d15ea6671f0637f53df7240990b7333f89-cSYZbO_fw658/format/webp" scaleType="fitXY" h="*" w="*"/>
+     <card w="850px" h="110px" alpha="0.8" cardCornerRadius="5dp" cardElevation="3dp" layout_gravity="center" margin="0 20px 0 0">
+       <horizontal h="110px">
+        <input id="input"  h="120px" w="700px"  layout_weight="1" lines="1" singleLine="true" text="天府" margin="10px 0 0 0" textSize="16sp" bg='#ffffffff'/>
+        <img id="ss" src="@drawable/ic_search_black_48dp"  h="80px" w="80px" margin="15px" textSize="16sp" text="确定"  bg="?selectableItemBackgroundBorderless"/>
+       </horizontal>
+      </card>
+    </frame>
+      <webview id="a" setScrollContainer="false" w="*" h="*"/>
+     </vertical>
+    <frame id="down">
+    <card w="{{device.width-100}}px" h="auto" cardCornerRadius="10dp" cardElevation="3dp" layout_gravity="center">
+    <vertical bg="#ffffff">
+    <vertical id="xiazai"/>
+     <text h="auto" textSize="22sp" text="下载" gravity="center" margin="0 30px 0 50px"/>
+      <View h="1" w="*" bg="#d3d3d3" marginBottom="20px"/>
+      <list id="todoList">
+      <card w="{{device.width-160}}px" h="110px" cardCornerRadius="5dp" cardElevation="0dp" margin="30px 10px 0px 10px">
+      <horizontal h="110px" bg="#e8e8e8" alpha="0.8">
+       <text id="text" h="*" w="150px" text="{{this.text}}" textSize="18sp" textColor="#000000" gravity="center"/>
+       <input id="input"  h="118px"  w="{{device.width-500}}px" lines="1" text="{{this.input}}" singleLine="true" margin="10px 0 0 0" textSize="18sp"  bg="#e8e8e8"/>
+       <img id="fz" src="@drawable/ic_filter_none_black_48dp"  h="*" w="50px" margin="20px 0px" textSize="16sp"  bg="?selectableItemBackgroundBorderless"/>
+       <img id="xz" src="@drawable/ic_file_download_black_48dp"  h="*" w="50px" margin="20px 0px" textSize="16sp"  bg="?selectableItemBackgroundBorderless"/>
+      </horizontal>
+      </card>
+      </list>
+     <text id="gb" h="150px" w="150px" textSize="18sp" text="关闭" gravity="center" layout_gravity="right" margin="0 0px 0 0px"/>
+     </vertical>
+    </card>
+    </frame>
+   </frame>
+  </vertical>
+ 
+),
+initList: function() {
+ 
+setSize(ui.down,0,0,0)
+var url = "http://tool.liumingye.cn/music/?page=audioPage&type=YQB&name=%E5%A4%A9%E5%BA%9C/"
+//ui.a.getSettings().setUserAgentString("Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36");
+ui.a.loadUrl(url);
+var xz = storages.create("xz");
+xz.put("xz",'""')
+var sb=storages.create("sb");
+sb.put("歌名","")
+sb.put("封面","")
+sb.put("流畅","")
+sb.put("标准","")
+sb.put("高品","")
+sb.put("FLAC","")
+sb.put("APE","")
+sb.put("Hi-Res","")
+sb.put("歌词","")
+var storage = storages.create("todoList");
+var todoList = storage.get("items", []);
+ui.todoList.setDataSource(todoList);
+
+var isCanFinish = false;
+var isCanFinishTimeout;
+ui.emitter.on("back_pressed", e => {
+    if (!isCanFinish) {
+        isCanFinish = true;
+        isCanFinishTimeout=setTimeout(() => {
+            //toastLog("双击退出");
+            isCanFinish = false;
+        }, 500);
+        e.consumed = true;
+    } else {
+        clearTimeout(isCanFinishTimeout);
+        e.consumed = false;
+    };
+});
+
+ui.todoList.on("item_bind", function(itemView, itemHolder){
+    itemView.fz.on("click", function(){
+        let item = itemHolder.item;
+        toast("已复制"+item.text+"：" + item.input+"到剪切板");
+        setClip(item.input)
+    });
+    itemView.xz.on("click", function(){
+        let item = itemHolder.item;
+        music_url=item.input
+var thread=threads.start(function(){
+var rr = http.get(music_url, {
+    headers: {
+      'Accept-Language': 'zh-cn,zh;q=0.5',
+      'User-Agent': 'Mozilla/5.0(Macintosh;IntelMacOSX10_7_0)AppleWebKit/535.11(KHTML,likeGecko)Chrome/17.0.963.56Safari/535.11'
+    }
+  });
+if(item.text=="歌名"){setClip(item.input);thread.interrupt();}
+if(item.text=="封面"){num7=".jpg"}
+if(item.text=="流畅"){num7=".wma"}
+if(item.text=="标准"){num7=".mp3"}
+if(item.text=="高品"){num7=".mp3"}
+if(item.text=="FLAC"){num7=".flac"}
+if(item.text=="APE"){num7=".ape"}
+if(item.text=="Hi-Res"){num7=".wav"}
+if(item.text=="歌词"){num7=".lrc"}
+var sb=storages.create("sb");
+num6=sb.get("歌名")
+var folder = '/sdcard/音乐/'+item.text+'/'
+files.ensureDir(folder)
+var file_name = folder +num6+num7
+files.writeBytes(file_name, rr.body.bytes())
+toast("下载完成："+file_name)
+});
+    });
+})
+
+ui.gb.click(()=>{
+setSize(ui.down,1,0,0)  
+setSize2(ui.xiazai,device.width,device.height) 
+});
+
+ui.ss.click(()=>{
+var input=ui.input.text();
+js1="javascript:document.getElementById('input').value='"+input+"'"
+ui.a.evaluateJavascript(js1,function(n) {
+    });
+js2="document.getElementsByTagName('button')[4].click()"
+ui.a.evaluateJavascript(js2,function(n) {
+    });
+});
+
+setInterval(()=>{
+js10="javascript:document.getElementById('url_128').value"
+ui.a.evaluateJavascript(js10,function(num3) {
+var xz = storages.create("xz");
+var num4=xz.get("xz")
+
+if(num4!=num3&num3!="null"){
+ //toast(num3)
+ download();
+setTimeout(()=>{
+ setSize2(ui.xiazai,0,0)
+ setSize(ui.down,0,1,1) 
+ },100)
+ xz.put("xz",num3)
+}
+});
+js3="document.getElementsByTagName('div')[144].className=''"
+ui.a.evaluateJavascript(js3,function(n) {
+    });
+js4="document.getElementsByTagName('div')[83].setAttribute('style','height:0px');"
+ui.a.evaluateJavascript(js4,function(n) {
+    });
+js5="document.getElementsByTagName('nav')[0].setAttribute('style','display: none');"
+ui.a.evaluateJavascript(js5,function(n) {
+    });
+js6="javascript:document.getElementById('play-bar').style.bottom='0px'"
+ui.a.evaluateJavascript(js6,function(n) {
+   // toastLog(n)
+    });
+js7="javascript:document.getElementById('m-download').setAttribute('style','display: none');"
+ui.a.evaluateJavascript(js7,function(n) {
+   // toastLog(n)
+    });
+},0);
+
+function setSize(view,Y1,Y2,Y3){     
+  animator = ObjectAnimator.ofFloat(view, "scaleY",Y1, Y2, Y3);
+  animator.setDuration(0); //动画时间
+  animator.start();
+}
+
+
+function setSize2(view,width,height){     
+     var params = new android.widget.LinearLayout.LayoutParams(width, height);
+     view.setLayoutParams(params);
+     }
+     
+function download(){
+todoList.splice(0,20);
+for(var i=0;i<9;i++){
+js9="document.getElementsByTagName('label')["+i+"].innerHTML"
+ui.a.evaluateJavascript(js9,function(text) {
+var text=""+text.match(/[^"].*[^"]/m);
+//toastLog(text)
+if(text=="歌名"){num2="name"}
+if(text=="封面"){num2="pic"}
+if(text=="流畅"){num2="url_m4a"}
+if(text=="标准"){num2="url_128"}
+if(text=="高品"){num2="url_320"}
+if(text=="FLAC"){num2="url_flac"}
+if(text=="APE"){num2="url_ape"}
+if(text=="Hi-Res"){num2="url_dsd"}
+if(text=="歌词"){num2="url_lrc"}
+js8="javascript:document.getElementById('"+num2+"').value"
+ui.a.evaluateJavascript(js8,function(input) {
+var input=""+input.match(/[^"].*[^"]/m);
+//toastLog(input)
+var sb=storages.create("sb");
+var num5=sb.get(text)
+if(input!="null"&num5!=input){
+todoList.push({
+    text:text,
+    input:input
+   });
+   sb.put(text,input)
+  }
+ })
+ });
+}
+}
+
+ 
+},activate: function() {
+        setContainermusic(this.ui);
+        if (!this.inited) this.initList();
+        this.inited = true;
+    }
+ }
+ 音乐.activate();
+ //音乐*/
+ //视频
+ function setContainervidao(v) {
+    ui.vidao.removeAllViews();
+    ui.vidao.addView(v, new android.widget.FrameLayout.LayoutParams(-1, -1));
+}
+
+var 视频 = {
+    ui: ui.inflate(
+  <vertical>
+   <frame w="*" h="*">
+           <vertical>
+            <webview id="webview"h="770px"/>
+              <vertical>
+               <grid id="jiekoutext" spanCount="3" w="*" h="auto" >
+                <text text="{{this}}" margin="12" gravity="center" bg="?selectableItemBackgroundBorderless"/>
+               </grid>
+              <horizontal w="*" h="100px">
+               <input inputType="textUri" id="dizhi" hint="输入Url" w="{{device.width-420}}px" h="125px" bg="#00ffffff" textColor="#000000" alpha="0.7" margin="10 0 0 0"/>
+               <button id="jiexi" text="解析" bg="#0000ccff" h="100px" w="120px" margin="5 0 0 0" bg="?selectableItemBackgroundBorderless"/>
+               <button id="jiekou" text="接口" bg="#0000ccff" h="100px" w="120px" margin="0 0 0 0" bg="?selectableItemBackgroundBorderless"/>
+               <button id="quanping" text="全屏" bg="#0000ccff" h="100px" w="120px" margin="0 0 5 0" bg="?selectableItemBackgroundBorderless"/>
+              </horizontal>
+              <grid id="tayy" spanCount="5" w="*" h="auto" >
+             <vertical bg="?selectableItemBackground" w="*">
+              <img w="50" h="50" scaleType="fitXY" src="{{this.icon}}" layout_gravity="center"/>
+              <text textColor="#000000"  textSize="10sp" text="{{this.title}}" gravity="center"/> 
+              <text textColor="#000000" autoLink="web" textSize="12sp" text="{{this.title2}}" gravity="center" h="80px"/> 
+             </vertical>
+            </grid>
+            <button id="tiaozhuan" text="跳转至浏览器播放" w="*" h="100px" layout_gravity="center" style="Widget.AppCompat.Button.Borderless.Colored" />
+            </vertical>
+           </vertical>
+           <frame id="cd"  >
+            <horizontal h="130px" w="*" layout_gravity="bottom" bg="#ffffff">
+            <button id="left" h="130px"  text="上页" layout_weight="1" textSize="20sp" bg="?selectableItemBackgroundBorderless"/>
+            <button id="qddz" h="130px"  text=" " layout_weight="1" textSize="20sp" bg="?selectableItemBackgroundBorderless"/>
+            <button id="right" h="130px"  text="下页" layout_weight="1" layout_gravity="right" textSize="20sp" bg="?selectableItemBackgroundBorderless"/>
+            </horizontal>
+            </frame>
+   </frame>
+  </vertical>
+),
+initList: function() {
+ 
+var spdz=""
+var jk2="https://hbimg.huabanimg.com/ad289986532a9bfc96b7536da7e8248c3fdc973239a119-OHO0Tf_fw658/format/webp"
+var jk=jk2
+ui.webview.getSettings().setUserAgentString("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3756.400 QQBrowser/10.5.4039.400");
+ui.webview.loadUrl(jk);
+setSize(ui.jiekoutext,0,0);
+ui.cd.scrollTo(device.width,device.height)
+var jiekoutext = []
+wjs2();
+
+ui.jiekoutext.setDataSource(jiekoutext);
+ui.jiekoutext.on("item_click", function(jiekoutext){
+     wjss1(jiekoutext);
+     setSize(ui.jiekoutext,0,0);
+});
+
+ui.jiekou.click(function(){
+    //toast("重置按钮大小和位置");
+    setSize(ui.jiekoutext,1080,500);
+    });
+
+ui.jiexi.click(function(){
+ui.webview.loadUrl(jk+ui.dizhi.text());
+spdz=ui.dizhi.text();
+    });
+    
+ui.qddz.click(()=>{    
+    spdz = String(ui.webview.getUrl());
+    ui.qddz.setText(" ");
+    if(jk2==jk){ui.webview.loadUrl(jk);}else{ui.webview.loadUrl(jk+spdz);}
+    //ui.tab.scrollTo(0,0)
+    ui.cd.scrollTo(device.width,device.height)
+    setSize(ui.webview,device.width,770);
+    });
+
+    ui.left.click(function(v) {
+        ui.run(() => {
+            ui.webview.goBack();
+        });
+    });
+    
+    ui.right.click(function(v) {
+        ui.run(() => {
+            ui.webview.goForward();
+        });
+    });
+
+ui.quanping.click(()=>{
+    //ui.tab.scrollTo(device.width,device.height)
+    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE); //强制为横屏
+    setSize(ui.webview,device.height,device.width);
+});
+
+ui.tiaozhuan.click(()=>{
+app.openUrl(jk+spdz);
+});
+
+var isCanFinish = false;
+var isCanFinishTimeout;
+ui.emitter.on("back_pressed", e => {
+    if (!isCanFinish) {
+        isCanFinish = true;
+        if(ui.qddz.text()=="确定"){
+              //ui.tab.scrollTo(0,0)
+              ui.qddz.setText(" ");
+              if(jk2==jk){ui.webview.loadUrl(jk);}else{ui.webview.loadUrl(jk+spdz);}
+              ui.cd.scrollTo(device.width,device.height)
+              setSize(ui.webview,device.width,770);
+            //ui.webview.goBack();
+            }else{   
+            //toast(ui.tab.getHeight())
+            //intervalId2=setInterval(fn2, 1)
+            ui.cd.scrollTo(device.width,device.height)
+            setSize(ui.jiekoutext,0,0);
+            setSize(ui.webview,device.width,770);
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);//竖屏
+            }
+        isCanFinishTimeout=setTimeout(() => {
+            //toastLog("再按一次退出程序");
+            isCanFinish = false;
+        }, 500);
+        e.consumed = true;
+    } else {
+        clearTimeout(isCanFinishTimeout);
+        e.consumed = false;
+    };
+});
+
+ui.tayy.setDataSource([
+  {   title: "腾讯视频",
+      title2: "https://m.v.qq.com/index.html/",
+      icon: "https://hbimg.huabanimg.com/0a76fd429b4094765654f7bd7a3e80c245285ea7148c4-Zlkcxi_fw658/format/webp"
+  
+  },
+  {
+      title: "奇艺视频",
+      title2: "https://m.iqiyi.com/",
+      icon: "https://hbimg.huabanimg.com/ec74ecd4738ab11fa11d8d4661100f10148ef8aa4e71-TOSog8_fw658/format/webp"
+  },
+    {
+      title: "优酷视频",
+      title2: "https://www.youku.com/",
+      icon: "https://hbimg.huabanimg.com/3fb2172a44cd1829f5f3c7d13257a55b20b5512133eb3-X8yGKw_fw658/format/webp"
+  },
+    {
+      title: "芒果视频",
+      title2: "https://m.mgtv.com/channel/home/",
+      icon: "https://hbimg.huabanimg.com/42a5795beb6fc6a5f241670ea1f5ee77db3eba274145-iWULnh_fw658/format/webp"
+  },
+    {
+      title: "乐视视频",
+      title2: "https://m.le.com/",
+      icon: "https://hbimg.huabanimg.com/57517414c7393c9c0b26f17f243addbe4fa6a8941df0e-2mZfVH_fw658/format/webp"
+  }
+]);      
+
+//监听左侧侧拉菜单
+ui.tayy.on("item_click", item => {
+    switch(item.title){
+        case"腾讯视频":
+        load="https://m.v.qq.com/index.html/"
+        break;
+        case"奇艺视频":
+        load="https://m.iqiyi.com/"
+        break;
+        case"优酷视频":
+        load="https://www.youku.com/"
+        break;
+        case"芒果视频":
+        load="https://m.mgtv.com/channel/home/"
+        break;
+        case"乐视视频":
+        load="https://m.le.com/"
+        break;
+    }
+    ui.qddz.setText("确定");
+    ui.webview.loadUrl(load);
+    setSize(ui.webview,device.width,device.height-130);
+    ui.cd.scrollTo(0,0)
+    //ui.tab.scrollTo(device.width,device.height)
+});
+
+
+function setSize(view,width,height){     
+     var params = new android.widget.LinearLayout.LayoutParams(width, height);
+     view.setLayoutParams(params);
+     }
+
+function wjss1(keywords){
+    jktext = open("/sdcard/wild_fancy/jx_url.txt","r")
+    var hs=jktext.readlines();
+    for(var i = 0; i < hs.length; i++){
+        var textone = hs[i];
+        if(textone.indexOf(keywords) >= 0){
+    var texttwo=textone.split("@");
+     jk=texttwo[0];
+    ui.webview.loadUrl(jk+spdz);
+    toast(texttwo[0])
+    log("接口名字:"+texttwo[0]);
+    log("接口地址:"+texttwo[1]);
+        }
+    }
+    jktext.close();
+    
+}
+
+function wjs2(keywords){
+    jktext = open("/sdcard/wild_fancy/jx_url.txt","r")
+    var hs=jktext.readlines();
+    for(var i = 0; i < hs.length; i++){
+        var textone = hs[i];
+        var texttwo=textone.split("@");
+        jiekoutext.push(texttwo[1]);
+    }
+    jktext.close();
+}
+
+setInterval(()=>{
+js1="javascript:document.getElementById('ads-box').setAttribute('style','width:0px'); "
+ui.webview.evaluateJavascript(js1,function(kk) { 
+//toastLog(kk)
+});
+},2000);
+ 
+},activate: function() {
+        setContainervidao(this.ui);
+        if (!this.inited) this.initList();
+        this.inited = true;
+    }
+ }
+threads.start(function(){
+var ScriptOne_Url="https://code.aliyun.com/hdj-wangnian/OrangeJs.APPurl/raw/master/jx_url";    
+var res = http.get(ScriptOne_Url); 
+if(res.statusCode != 200){
+toast("视频解析库更新失败,请尝试重启应用")
+}else{
+//toast("正在更新视频解析库")
+var path = "/sdcard/wild_fancy/jx_url.txt";
+var text = res.body.string();
+var file = open(path, "w");
+file.write(text);
+file.close();
+}
+});
+var lujing=files.exists("/sdcard/wild_fancy/jx_url.txt")
+if(lujing==true){视频.activate();}
+ //视频*/
+ //钉钉
+ function DingTalk(){
+ auto.waitFor();
+企业课程();
+function 企业课程(){
+launch("com.alibaba.android.rimet");
+while(!click("工作台"));
+while(!click("搜索"));
+desc("返回").waitFor()
+sleep(1000);
+setText("金牌团队");
+while(!click("应用"));
+while(!click("打开"));
+while(!click("企业课程"));
+var e="1000"
+for(var q=0;q<e;q++){
+swipe(device.width/2, device.height-200, device.width/2, 600, 500);
+if(text("我也是有底线的～").exists()){
+e="0"
+for(var w=0;w<q;w++){
+swipe(device.width/2, 600, device.width/2, device.height-200, 500);
+}
+sleep(2000);
+main()
+}}
+}
+
+function main(){
+var i=0;
+var k=0;
+while(true){
+var list = depth("25").indexInParent("3").column("-1").findOnce(i);
+i++;
+if(list.text()!=""){
+var j=list.text()
+var jj=j.match(/已学完/g)
+if(jj==null){
+toast(list.text())
+list.click();
+sleep(5000);
+if(className("android.view.View").text("评论").exists()){
+toast("视频");
+let Btn = textEndsWith("学习").findOne().bounds(); 
+click(Btn.centerX(),Btn.centerY())
+sleep(2000)
+click(Btn.centerX(),Btn.centerY())
+text("100% 完成").waitFor();
+id("back_layout").click();
+text("恭喜您完成学习").waitFor();
+var h=text("恭喜您完成学习").findOne().bounds();
+click(h.centerX(),h.centerY()+400);
+text("全部目录").waitFor();
+sleep(3000);
+}else{
+toast("文档");
+text("恭喜您完成学习").waitFor();
+var h=text("恭喜您完成学习").findOne().bounds();
+click(h.centerX(),h.centerY()+400);
+sleep(2000);
+id("back_layout").click();
+text("全部目录").waitFor();
+sleep(3000);
+}
+}
+}else if(list.text()==""){
+var list2 = depth("25").indexInParent("2").column("-1").findOnce(k);
+k++;
+var l=list2.text()
+var ll=l.match(/已学完/g)
+if(ll==null){
+toast(list2.text())
+list.click();
+sleep(5000);
+if(className("android.view.View").text("评论").exists()){
+toast("视频");
+let Btn = textEndsWith("学习").findOne().bounds(); 
+click(Btn.centerX(),Btn.centerY())
+sleep(2000)
+click(Btn.centerX(),Btn.centerY())
+text("100% 完成").waitFor();
+id("back_layout").click();
+text("恭喜您完成学习").waitFor();
+var h=text("恭喜您完成学习").findOne().bounds();
+click(h.centerX(),h.centerY()+400);
+text("全部目录").waitFor();
+sleep(3000);
+}else{
+toast("文档");
+text("恭喜您完成学习").waitFor();
+var h=text("恭喜您完成学习").findOne().bounds();
+click(h.centerX(),h.centerY()+400);
+sleep(2000);
+id("back_layout").click();
+text("全部目录").waitFor();
+sleep(3000);
+}
+}
+}
+}
+}
+}
+//钉钉*/
